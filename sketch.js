@@ -1,3 +1,26 @@
-let player;let bullets=[];let enemies=[];let particles=[];let stars=[];let score=0;let gameOver=false;let fireTimer=0;const FIRE_RATE=6;let enemyTimer=0;function setup(){createCanvas(400,600);player={x:width/2,y:height-50,r:16};for(let i=0;i<30;i++){stars.push({x:random(width),y:random(height),r:random(1,3),s:random(0.5,2)})}textSize(18);textAlign(LEFT,TOP)}
-function distance(x1,y1,x2,y2){let dx=x1-x2;let dy=y1-y2;return sqrt(dx*dx+dy*dy)}
-function draw(){background(0);noStroke();fill(255);for(let i=0;i<stars.length;i++){let st=stars[i];ellipse(st.x,st.y,st.r,st.r);st.y+=st.s;if(st.y>height){st.y=random(-10,0);st.x=random(width)}}if(!gameOver){if(keyIsDown(LEFT_ARROW)){player.x-=5}if(keyIsDown(RIGHT_ARROW)){player.x+=5}player.x=constrain(player.x,player.r,width-player.r);if(keyIsDown(32)){fireTimer++;if(fireTimer%FIRE_RATE===0){bullets.push({x:player.x,y:player.y-player.r-10,r:10,vy:-8})}}else{fireTimer=0}enemyTimer++;if(enemyTimer>=60){enemyTimer=0;let ex=random(12,width-12);enemies.push({x:ex,y:-12,r:12,vy:2})}}for(let i=bullets.length-1;i>=0;i--){let b=bullets[i];b.y+=b.vy;if(b.y+b.r<0){bullets.splice(i,1);continue}}for(let i=enemies.length-1;i>=0;i--){let e=enemies[i];e.y+=e.vy;let removed=false;if(e.y-e.r>height){enemies.splice(i,1);continue}for(let j=bullets.length-1;j>=0;j--){let b=bullets[j];let d=distance(e.x,e.y,b.x,b.y);if(d<=e.r+b.r){for(let k=0;k<5;k++){let angle=random(TWO_PI);let speed=random(1,4);particles.push({x:e.x,y:e.y,vx:cos(angle)*speed,vy:sin(angle)*speed,r:3,age:0,life:20})}score+=1;bullets.splice(j,1);enemies.splice(i,1);removed=true;break}}if(removed){continue}let dplayer=distance(e.x,e.y,player.x,player.y);if(dplayer<=e.r+player.r){gameOver=true}}for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.age++;if(p.age>p.life){particles.splice(i,1)}}for(let i=0;i<enemies.length;i++){let e=enemies[i];fill(255,0,0);ellipse(e.x,e.y,e.r*2,e.r*2)}for(let i=0;i<bullets.length;i++){let b=bullets[i];fill(0,255,255);ellipse(b.x,b.y,b.r*2,b.r*2)}for(let i=0;i<particles.length;i++){let p=particles[i];let a=map(p.age,0,p.life,255,0);fill(255,200,0,a);ellipse(p.x,p.y,p.r*2,p.r*2)}fill(0,0,255);ellipse(player.x,player.y,player.r*2,player.r*2);fill(255);text('Score: '+score,8,8);if(gameOver){textAlign(CENTER,CENTER);textSize(32);text('GAME OVER',width/2,height/2);textSize(18);textAlign(LEFT,TOP)}}
+let player;
+let bullets = [];
+let enemies = [];
+let spawnTimer = 0;
+let spawnInterval = 60;
+let score = 0;
+let lives = 3;
+let shootCooldown = 0;
+let shootDelay = 10;
+function setup(){createCanvas(480,640);player = {x: width/2, y: height-40, size: 24, speed: 5};textAlign(LEFT, TOP);textSize(16);}
+function draw(){background(20);
+if (keyIsDown(LEFT_ARROW) || keyIsDown(65)){player.x -= player.speed;} 
+if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)){player.x += player.speed;} 
+player.x = constrain(player.x, player.size/2, width - player.size/2);
+if (shootCooldown > 0){shootCooldown -= 1;} 
+if ((keyIsDown(32) || mouseIsPressed) && shootCooldown <= 0){bullets.push({x: player.x, y: player.y - player.size/2, r: 4, speed: 8});shootCooldown = shootDelay;}
+spawnTimer += 1; if (spawnTimer >= spawnInterval){spawnTimer = 0; let ex = random(20, width - 20); let es = random(1.5, 3.0); enemies.push({x: ex, y: -20, w: 28, h: 20, speed: es});}
+for (let i = bullets.length - 1; i >= 0; i--){bullets[i].y -= bullets[i].speed; if (bullets[i].y < -10){bullets.splice(i, 1);}}
+for (let i = enemies.length - 1; i >= 0; i--){enemies[i].y += enemies[i].speed; if (enemies[i].y > height + 30){enemies.splice(i, 1); lives -= 1; if (lives < 0){lives = 0;}}}
+for (let i = enemies.length - 1; i >= 0; i--){for (let j = bullets.length - 1; j >= 0; j--){let dx = enemies[i].x - bullets[j].x; let dy = enemies[i].y - bullets[j].y; let distSq = dx * dx + dy * dy; let rSum = Math.max(enemies[i].w, enemies[i].h) / 2 + bullets[j].r; if (distSq <= rSum * rSum){enemies.splice(i, 1); bullets.splice(j, 1); score += 10; break;}}}
+for (let i = enemies.length - 1; i >= 0; i--){let dx = enemies[i].x - player.x; let dy = enemies[i].y - player.y; let distSq = dx * dx + dy * dy; let rSum = Math.max(enemies[i].w, enemies[i].h) / 2 + player.size / 2; if (distSq <= rSum * rSum){enemies.splice(i, 1); lives -= 1; if (lives < 0){lives = 0;}}}
+fill(0,150,255);noStroke();rectMode(CENTER);rect(player.x, player.y, player.size, player.size);
+fill(255,255,0);for (let i = 0; i < bullets.length; i++){ellipse(bullets[i].x, bullets[i].y, bullets[i].r * 2, bullets[i].r * 2);} 
+fill(255,80,80);for (let i = 0; i < enemies.length; i++){rectMode(CENTER);rect(enemies[i].x, enemies[i].y, enemies[i].w, enemies[i].h);} 
+fill(255);textAlign(LEFT, TOP);textSize(16);text('Score: ' + score, 8, 8);text('Lives: ' + lives, 8, 28);
+if (lives <= 0){fill(0,0,0,150);rectMode(CORNER);rect(0,0,width,height);fill(255);textSize(32);textAlign(CENTER, CENTER);text('GAME OVER', width/2, height/2);noLoop();}}
